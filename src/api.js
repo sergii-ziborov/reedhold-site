@@ -182,3 +182,23 @@ export function postRoom(topic, text) {
 export function setInterests(topics) {
   return post("/v1/interests", { topics });
 }
+
+export function setPolicy(policy) {
+  return post("/v1/privacy", { policy });
+}
+
+export function blockIdentity(identity) {
+  return post("/v1/privacy/block", { identity });
+}
+
+export function unblockIdentity(identity) {
+  return post("/v1/privacy/unblock", { identity });
+}
+
+export function archiveChat(conversation) {
+  return post("/v1/privacy/archive", { conversation });
+}
+
+export function unarchiveChat(conversation) {
+  return post("/v1/privacy/unarchive", { conversation });
+}

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   account,
   addContact,
+  archiveChat,
+  blockIdentity,
   chats as fetchChats,
   claimAlias,
   createAccount,
@@ -10,12 +12,15 @@ import {
   postRoom,
   restoreAccount,
   setInterests,
+  setPolicy,
   talkCreateGroup,
   talkDm,
   talkInbox,
   talkInvite,
   talkRemove,
   talkSend,
+  unarchiveChat,
+  unblockIdentity,
 } from "./api.js";
 import {
   clearSeat,
@@ -45,6 +50,7 @@ export default function Messenger({ live }) {
   const [threads, setThreads] = useState({});
   const [sheet, setSheet] = useState(null);
   const [panel, setPanel] = useState(false);
+  const [vault, setVault] = useState(false);
 
   const me = session ? identityHex(session.identity) : "";
 
@@ -88,8 +94,10 @@ export default function Messenger({ live }) {
     return () => clearInterval(timer);
   }, [session]);
 
-  const list = useMemo(() => chatItems(book), [book]);
-  const current = list.find((item) => item.key === active);
+  const all = useMemo(() => chatItems(book), [book]);
+  const hidden = book?.privacy?.archived || [];
+  const list = all.filter((item) => hidden.includes(item.id) === vault);
+  const current = all.find((item) => item.key === active);
   const messages = current ? threads[current.id] || current.posts || [] : [];
 
   function onCreate() {
@@ -168,6 +176,38 @@ export default function Messenger({ live }) {
       .then((room) => {
         setSheet(null);
         setActive(`room:${room.id}`);
+        return loadBook();
+      })
+      .catch((error) => setStatus(error.message));
+  }
+
+  function onPolicy(name) {
+    setPolicy(name).then(loadBook).catch((error) => setStatus(error.message));
+  }
+
+  function onBlock() {
+    if (!current || !current.identity) {
+      return;
+    }
+    blockIdentity(current.identity)
+      .then(() => {
+        setActive(null);
+        return loadBook();
+      })
+      .catch((error) => setStatus(error.message));
+  }
+
+  function onArchive() {
+    if (!current) {
+      return;
+    }
+    const hidden = (book?.privacy?.archived || []).includes(current.id);
+    const call = hidden ? unarchiveChat(current.id) : archiveChat(current.id);
+    call
+      .then(() => {
+        if (!hidden) {
+          setActive(null);
+        }
         return loadBook();
       })
       .catch((error) => setStatus(error.message));
@@ -271,6 +311,11 @@ export default function Messenger({ live }) {
               <button className="btn ghost" type="button" onClick={() => setSheet("account")}>
                 Account
               </button>
+              {hidden.length ? (
+                <button className="btn ghost" type="button" onClick={() => setVault(!vault)}>
+                  {vault ? "Back" : `Archived ${hidden.length}`}
+                </button>
+              ) : null}
             </div>
             {sheet === "account" ? (
               <div className="sheet">
@@ -288,6 +333,46 @@ export default function Messenger({ live }) {
                 <p className="note">
                   Topics decide what reaches you. Pick at least one under Public.
                 </p>
+                <p className="note">Who may write to you</p>
+                <div className="chips">
+                  {[
+                    ["everyone", "Everyone"],
+                    ["contacts", "Contacts only"],
+                    ["nobody", "Nobody new"],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={book?.privacy?.policy === value ? "chip on" : "chip"}
+                      onClick={() => onPolicy(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="note">
+                  Strangers never land in the main list — they wait in Requests until you
+                  add them.
+                </p>
+                {(book?.privacy?.blocked || []).length ? (
+                  <>
+                    <p className="note">Blocked</p>
+                    {(book.privacy.blocked || []).map((identity) => (
+                      <button
+                        key={identity}
+                        className="btn ghost"
+                        type="button"
+                        onClick={() =>
+                          unblockIdentity(identity)
+                            .then(loadBook)
+                            .catch((error) => setStatus(error.message))
+                        }
+                      >
+                        Unblock {fingerprint(identity)}
+                      </button>
+                    ))}
+                  </>
+                ) : null}
                 <button className="btn ghost" type="button" onClick={onSignOut}>
                   Sign out
                 </button>
@@ -410,13 +495,20 @@ export default function Messenger({ live }) {
                     </p>
                   </div>
                 ) : null}
-                {current.kind === "request" ? (
-                  <div className="sheet">
-                    <p className="note">
-                      This person is not in your contacts. Add them to reply.
-                    </p>
-                    <button className="btn" type="button" onClick={onAdopt}>
-                      Add to contacts
+                {current.kind === "request" || current.kind === "dm" ? (
+                  <div className="admin">
+                    {current.kind === "request" ? (
+                      <button type="button" onClick={onAdopt}>
+                        Add to contacts
+                      </button>
+                    ) : null}
+                    <button type="button" onClick={onArchive}>
+                      {(book?.privacy?.archived || []).includes(current.id)
+                        ? "Unarchive"
+                        : "Archive"}
+                    </button>
+                    <button type="button" onClick={onBlock}>
+                      Block
                     </button>
                   </div>
                 ) : null}
@@ -499,18 +591,27 @@ function chatItems(book) {
     return [];
   }
   return [
-    ...(book.contacts || []).map((contact) => ({
-      key: `dm:${contact.identity}`,
-      // The transcript is keyed by conversation, never by identity.
-      id: contact.conversation,
-      kind: "dm",
-      title: contact.petname ? `@${contact.petname}` : "Contact",
-      hint: fingerprint(contact.identity),
-      tint: tint(contact.identity),
-      identity: contact.identity,
-      messaging_public: contact.messaging_public,
-      posts: [],
-    })),
+    ...(book.contacts || []).map((contact) => {
+      const now = (book.nicks || {})[contact.identity] || "";
+      const known = contact.known_nick || "";
+      // A rename must be visible. Silently swapping the name someone was saved
+      // under is how a recycled nick gets mistaken for the person who left it.
+      const renamed = now && known && now !== known;
+      return {
+        key: `dm:${contact.identity}`,
+        // The transcript is keyed by conversation, never by identity.
+        id: contact.conversation,
+        kind: "dm",
+        title: now ? `@${now}` : contact.petname ? `@${contact.petname}` : "Contact",
+        hint: renamed
+          ? `was @${known} · ${fingerprint(contact.identity)}`
+          : fingerprint(contact.identity),
+        tint: tint(contact.identity),
+        identity: contact.identity,
+        messaging_public: contact.messaging_public,
+        posts: [],
+      };
+    }),
     ...(book.groups || []).map((group) => ({
       key: `group:${group.id}`,
       id: group.id,
