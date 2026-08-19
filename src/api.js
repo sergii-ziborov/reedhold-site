@@ -109,3 +109,55 @@ export function chainCommit(epoch, identity, groups, storage) {
 export function chainHead() {
   return json("/v1/chain/head");
 }
+
+export function claimAlias(nick) {
+  return post("/v1/alias", { nick });
+}
+
+export function lookupAlias(nick) {
+  return post("/v1/alias/lookup", { nick });
+}
+
+export function chats() {
+  return json("/v1/chats");
+}
+
+export function addContact(identity, messagingPublic, petname) {
+  return post("/v1/contacts", {
+    identity,
+    messaging_public: messagingPublic,
+    petname,
+  });
+}
+
+export function talkDm(to, toMsgPub, plaintext) {
+  return post("/v1/talk/dm", { to, to_msg_pub: toMsgPub, plaintext });
+}
+
+export function talkInvite(group, member, memberMsgPub) {
+  return post("/v1/talk/invite", {
+    group,
+    member,
+    member_msg_pub: memberMsgPub,
+  });
+}
+
+export function talkSend(group, plaintext) {
+  return post("/v1/talk/send", { group, plaintext });
+}
+
+export function talkRemove(group, member) {
+  return post("/v1/talk/remove", { group, member });
+}
+
+export function joinRoom(topic) {
+  return post("/v1/rooms/join", { topic });
+}
+
+export function postRoom(topic, text) {
+  return post("/v1/rooms/post", { topic, text });
+}
+
+export function setInterests(topics) {
+  return post("/v1/interests", { topics });
+}

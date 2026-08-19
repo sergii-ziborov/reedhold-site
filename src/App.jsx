@@ -1,4 +1,5 @@
 import Landing, { useLiveHost } from "./Landing.jsx";
+import Messenger from "./Messenger.jsx";
 import WebApp from "./WebApp.jsx";
 import { useEffect, useState } from "react";
 
@@ -16,6 +17,9 @@ export default function App() {
   const path = useHash();
   const live = useLiveHost();
   if (path.startsWith("/app")) {
+    return <Messenger live={live} />;
+  }
+  if (path.startsWith("/lab")) {
     return <WebApp live={live} />;
   }
   return <Landing live={live} />;

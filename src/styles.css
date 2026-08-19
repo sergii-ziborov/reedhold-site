@@ -230,3 +230,115 @@ footer {
   color: var(--mute);
   font-size: 0.9rem;
 }
+
+.messenger {
+  max-width: 72rem;
+}
+
+.tg {
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) 1fr;
+  min-height: 70vh;
+  border: 1px solid var(--line);
+  margin-top: 1rem;
+}
+
+.tg-side {
+  border-right: 1px solid var(--line);
+  padding: 1rem;
+  overflow: auto;
+}
+
+.tg-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 70vh;
+}
+
+.tg-head {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.tg-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+
+.tg-list,
+.tg-feed {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+}
+
+.row {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  display: flex;
+  justify-content: space-between;
+  color: var(--soft);
+}
+
+.row.on,
+.chip.on {
+  color: var(--leaf);
+  box-shadow: inset 3px 0 0 var(--moss);
+}
+
+.tg-feed {
+  flex: 1;
+  padding: 1rem;
+  overflow: auto;
+}
+
+.tg-feed li {
+  margin: 0.4rem 0;
+  max-width: 80%;
+}
+
+.tg-feed li.mine {
+  margin-left: auto;
+  color: var(--leaf);
+}
+
+.tg-feed span {
+  display: block;
+  color: var(--mute);
+  font-size: 0.8rem;
+}
+
+.tg-compose {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.6rem 0;
+}
+
+.chip {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--mute);
+  padding: 0.2rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.admin {
+  padding: 0.6rem 1rem;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 720px) {
+  .tg {
+    grid-template-columns: 1fr;
+  }
+}

@@ -50,8 +50,9 @@ export default function Landing({ live }) {
         <h1>A social mesh that keeps holding.</h1>
         <p className="lead">
           Recoverable cryptographic identity, signed social events, and
-          storage that survives its creator. The protocol is Rust. The phone
-          client is Swift. This is the public web. There is no Kotlin.
+          storage that survives its creator. Chats look like Telegram;
+          nicks are public aliases and never enter the crypto. The protocol
+          is Rust. The phone client is Swift. This is the public web.
         </p>
         <div className="actions">
           <a className="btn" href="#/app">
