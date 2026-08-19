@@ -399,6 +399,50 @@ textarea:focus {
   box-shadow: 0 8px 20px rgba(42, 36, 31, 0.06);
 }
 
+/* Two chats may share a name, so every row carries its own stamp. */
+.row {
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.row .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.row-text {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  text-align: left;
+}
+
+.row-text strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-text em {
+  font-style: normal;
+  color: var(--mute);
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tg-head .btn.ghost {
+  margin-top: 0.55rem;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+}
+
 .tg-pane {
   display: flex;
   flex-direction: column;

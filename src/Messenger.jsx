@@ -17,7 +17,14 @@ import {
   talkRemove,
   talkSend,
 } from "./api.js";
-import { deviceSecret, identityHex, saveManifest, savedManifest, savedSeat } from "./vault.js";
+import {
+  clearSeat,
+  deviceSecret,
+  identityHex,
+  saveManifest,
+  savedManifest,
+  savedSeat,
+} from "./vault.js";
 import Nav from "./Nav.jsx";
 
 export default function Messenger({ live }) {
@@ -37,6 +44,7 @@ export default function Messenger({ live }) {
   const [draft, setDraft] = useState("");
   const [threads, setThreads] = useState({});
   const [sheet, setSheet] = useState(null);
+  const [panel, setPanel] = useState(false);
 
   const me = session ? identityHex(session.identity) : "";
 
@@ -165,6 +173,28 @@ export default function Messenger({ live }) {
       .catch((error) => setStatus(error.message));
   }
 
+  function onSignOut() {
+    clearSeat();
+    setSession(null);
+    setBook(null);
+    setThreads({});
+    setActive(null);
+    setSheet(null);
+    setStatus("Signed out. Restore with your password on this browser.");
+  }
+
+  function onAdopt() {
+    if (!current || !current.identity) {
+      return;
+    }
+    addContact(current.identity, current.messaging_public, "")
+      .then(() => {
+        setActive(null);
+        return loadBook();
+      })
+      .catch((error) => setStatus(error.message));
+  }
+
   function onInterest(name) {
     const selected = new Set(book?.interests || []);
     if (selected.has(name)) {
@@ -238,7 +268,35 @@ export default function Messenger({ live }) {
               <button className="btn ghost" type="button" onClick={() => setSheet("room")}>
                 Public
               </button>
+              <button className="btn ghost" type="button" onClick={() => setSheet("account")}>
+                Account
+              </button>
             </div>
+            {sheet === "account" ? (
+              <div className="sheet">
+                <p className="note">
+                  You are <strong>{book?.nick ? `@${book.nick}` : "unnamed"}</strong>
+                </p>
+                <p className="note">Identity {fingerprint(me)}…</p>
+                <label>
+                  Public nick
+                  <input value={nick} onChange={(event) => setNick(event.target.value)} />
+                </label>
+                <button className="btn" type="button" onClick={onClaim}>
+                  Save nick
+                </button>
+                <p className="note">
+                  Topics decide what reaches you. Pick at least one under Public.
+                </p>
+                <button className="btn ghost" type="button" onClick={onSignOut}>
+                  Sign out
+                </button>
+                <p className="note">
+                  Signing out drops this seat only. The recovery manifest stays on this browser,
+                  and the password is never stored.
+                </p>
+              </div>
+            ) : null}
             {sheet === "people" ? (
               <div className="sheet">
                 <label>
@@ -310,7 +368,11 @@ export default function Messenger({ live }) {
                       setSheet(null);
                     }}
                   >
-                    <strong>{item.title}</strong>
+                    <span className="dot" style={{ background: item.tint }} />
+                    <span className="row-text">
+                      <strong>{item.title}</strong>
+                      <em>{item.hint}</em>
+                    </span>
                     <span>{item.kind}</span>
                   </button>
                 </li>
@@ -322,14 +384,42 @@ export default function Messenger({ live }) {
               <>
                 <header className="tg-head">
                   <h2>{current.title}</h2>
-                  <p className="note">
-                    {current.kind === "group" && current.you_admin
-                      ? "You admin this group"
-                      : current.kind === "room"
-                        ? "Public room · aliases stay off the wire"
-                        : "Direct message · keys only"}
-                  </p>
+                  <p className="note">{describe(current)}</p>
+                  {current.kind === "group" ? (
+                    <button
+                      className="btn ghost"
+                      type="button"
+                      onClick={() => setPanel(!panel)}
+                    >
+                      {panel ? "Close settings" : "Group settings"}
+                    </button>
+                  ) : null}
                 </header>
+                {current.kind === "group" && panel ? (
+                  <div className="sheet">
+                    <p className="note">Group id {current.id}</p>
+                    <p className="note">
+                      {(current.members || []).length} member
+                      {(current.members || []).length === 1 ? "" : "s"} ·{" "}
+                      {current.you_admin ? "you are the owner" : "owned by someone else"}
+                    </p>
+                    <p className="note">
+                      The name is a local label. Two groups may share it; the id is what is
+                      unique. Only the owner can invite or remove, and removing rotates the
+                      epoch key so the old member cannot read what comes next.
+                    </p>
+                  </div>
+                ) : null}
+                {current.kind === "request" ? (
+                  <div className="sheet">
+                    <p className="note">
+                      This person is not in your contacts. Add them to reply.
+                    </p>
+                    <button className="btn" type="button" onClick={onAdopt}>
+                      Add to contacts
+                    </button>
+                  </div>
+                ) : null}
                 <ol className="tg-feed">
                   {messages.map((msg, index) => (
                     <li
@@ -341,7 +431,7 @@ export default function Messenger({ live }) {
                     </li>
                   ))}
                 </ol>
-                {current.kind === "group" && current.you_admin ? (
+                {current.kind === "group" && current.you_admin && panel ? (
                   <div className="admin">
                     {(book?.contacts || []).map((contact) => (
                       <button
@@ -415,6 +505,8 @@ function chatItems(book) {
       id: contact.conversation,
       kind: "dm",
       title: contact.petname ? `@${contact.petname}` : "Contact",
+      hint: fingerprint(contact.identity),
+      tint: tint(contact.identity),
       identity: contact.identity,
       messaging_public: contact.messaging_public,
       posts: [],
@@ -424,6 +516,12 @@ function chatItems(book) {
       id: group.id,
       kind: "group",
       title: group.name,
+      // Names are labels, ids are identity. Two groups may share a name, so
+      // the row has to show which one this is.
+      hint: `${fingerprint(group.id)} · ${(group.members || []).length} member${
+        (group.members || []).length === 1 ? "" : "s"
+      }`,
+      tint: tint(group.id),
       you_admin: group.you_admin,
       members: group.members,
       posts: [],
@@ -433,10 +531,53 @@ function chatItems(book) {
       id: room.id,
       kind: "room",
       title: `#${room.topic}`,
+      hint: "open to anyone on this topic",
+      tint: tint(room.id),
       topic: room.topic,
       posts: room.posts || [],
     })),
+    // Someone not in the address book wrote. Without a row their message
+    // arrives and is never shown, which reads as "not delivered".
+    ...(book.requests || []).map((request) => ({
+      key: `request:${request.identity}`,
+      id: request.conversation,
+      kind: "request",
+      title: `Unknown · ${fingerprint(request.identity)}`,
+      hint: `${request.count} message${request.count === 1 ? "" : "s"} · not a contact`,
+      tint: tint(request.identity),
+      identity: request.identity,
+      messaging_public: request.messaging_public,
+      posts: [],
+    })),
   ];
+}
+
+/// A group you do not own is still a group, never a direct message.
+function describe(item) {
+  if (item.kind === "group") {
+    return item.you_admin ? "Private group · you are the owner" : "Private group · invite only";
+  }
+  if (item.kind === "room") {
+    return "Public room · aliases stay off the wire";
+  }
+  if (item.kind === "request") {
+    return "Not in your contacts yet";
+  }
+  return "Direct message · keys only";
+}
+
+/// Short, stable stamp so two same-named chats never look identical.
+function fingerprint(hex) {
+  return hex ? hex.slice(0, 6) : "";
+}
+
+/// Deterministic hue from the id. Same chat, same colour, on every device.
+function tint(hex) {
+  if (!hex) {
+    return "hsl(0 0% 80%)";
+  }
+  const hue = parseInt(hex.slice(0, 4), 16) % 360;
+  return `hsl(${hue} 42% 72%)`;
 }
 
 function label(book, from, me) {
