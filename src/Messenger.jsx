@@ -17,7 +17,7 @@ import {
   talkRemove,
   talkSend,
 } from "./api.js";
-import { deviceSecret, identityHex, saveManifest, savedManifest } from "./vault.js";
+import { deviceSecret, identityHex, saveManifest, savedManifest, savedSeat } from "./vault.js";
 import Nav from "./Nav.jsx";
 
 export default function Messenger({ live }) {
@@ -51,7 +51,7 @@ export default function Messenger({ live }) {
   }
 
   useEffect(() => {
-    if (!live) {
+    if (!live || !savedSeat()) {
       return;
     }
     account()

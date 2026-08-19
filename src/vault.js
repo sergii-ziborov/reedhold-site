@@ -1,5 +1,6 @@
 const DEVICE = "reedhold.device";
 const MANIFEST = "reedhold.manifest";
+const SEAT = "reedhold.seat";
 
 export function deviceSecret() {
   const stored = window.localStorage.getItem(DEVICE);
@@ -19,6 +20,23 @@ export function savedManifest() {
 
 export function saveManifest(hex) {
   window.localStorage.setItem(MANIFEST, hex);
+}
+
+export function savedSeat() {
+  return window.sessionStorage.getItem(SEAT) || window.localStorage.getItem(SEAT) || "";
+}
+
+export function saveSeat(id) {
+  if (!id) {
+    return;
+  }
+  window.sessionStorage.setItem(SEAT, id);
+  window.localStorage.setItem(SEAT, id);
+}
+
+export function clearSeat() {
+  window.sessionStorage.removeItem(SEAT);
+  window.localStorage.removeItem(SEAT);
 }
 
 export function identityHex(uri) {

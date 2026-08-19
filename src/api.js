@@ -1,12 +1,33 @@
+import { saveSeat, savedSeat } from "./vault.js";
+
 const base = import.meta.env.VITE_API || "";
 
-async function json(path, options) {
-  const response = await fetch(`${base}${path}`, options);
+function seatHeaders(extra = {}) {
+  const headers = { ...extra };
+  const seat = savedSeat();
+  if (seat) {
+    headers["X-Reedhold-Seat"] = seat;
+  }
+  return headers;
+}
+
+function rememberSeat(data) {
+  if (data && data.seat) {
+    saveSeat(data.seat);
+  }
+  return data;
+}
+
+async function json(path, options = {}) {
+  const response = await fetch(`${base}${path}`, {
+    ...options,
+    headers: seatHeaders(options.headers || {}),
+  });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(data.error || "request failed");
   }
-  return data;
+  return rememberSeat(data);
 }
 
 function post(path, body) {
@@ -38,7 +59,7 @@ export function restoreAccount(manifestHex, password, deviceSecret) {
     manifest_hex: manifestHex,
     password,
     device_secret: deviceSecret,
-  });
+  }).then((data) => data.account || data);
 }
 
 export function account() {

@@ -24,6 +24,7 @@ import {
   identityHex,
   saveManifest,
   savedManifest,
+  savedSeat,
 } from "./vault.js";
 import Nav from "./Nav.jsx";
 
@@ -46,7 +47,7 @@ export default function WebApp({ live }) {
   const [head, setHead] = useState(null);
 
   useEffect(() => {
-    if (!live) {
+    if (!live || !savedSeat()) {
       return;
     }
     fetchAccount()
