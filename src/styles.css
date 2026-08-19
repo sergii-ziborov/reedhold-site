@@ -59,3 +59,47 @@ ol {
   padding-left: 1.2rem;
   color: #c5d0bf;
 }
+
+.try {
+  margin: 2rem 0;
+  padding: 1rem 0;
+  border-top: 1px solid #2a3326;
+}
+
+.identity {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+  color: #d7f0c8;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: #8a9a80;
+  font-size: 0.85rem;
+}
+
+input {
+  background: #1a1f16;
+  border: 1px solid #2a3326;
+  color: #e8efe6;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+}
+
+.actions {
+  display: flex;
+  gap: 0.6rem;
+  margin: 0.8rem 0;
+}
+
+button {
+  background: #2a3326;
+  color: #d7f0c8;
+  border: 0;
+  padding: 0.45rem 0.8rem;
+  font: inherit;
+  cursor: pointer;
+}

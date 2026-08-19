@@ -14,7 +14,8 @@ npm install
 npm run dev
 ```
 
-Needs `reedhold-host` on `127.0.0.1:4783` for live invariants.
+Needs `reedhold-host` on `127.0.0.1:4783` for live invariants, create,
+restore, and signed posts. The recovery manifest stays in `localStorage`.
 
 ```text
 reedhold            protocol
