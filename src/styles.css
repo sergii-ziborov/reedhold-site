@@ -1,0 +1,61 @@
+:root {
+  color: #e8efe6;
+  background: #12150f;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 4rem 1.5rem 6rem;
+}
+
+.kicker {
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: #9bb38a;
+}
+
+h1 {
+  font-weight: 500;
+  font-size: 2.4rem;
+  line-height: 1.15;
+}
+
+.lead,
+.status,
+.note {
+  line-height: 1.5;
+  color: #c5d0bf;
+}
+
+.repos {
+  list-style: none;
+  padding: 0;
+}
+
+.repos li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid #2a3326;
+  padding: 0.7rem 0;
+}
+
+.repos a {
+  color: #d7f0c8;
+}
+
+.repos span {
+  color: #8a9a80;
+}
+
+ol {
+  padding-left: 1.2rem;
+  color: #c5d0bf;
+}
