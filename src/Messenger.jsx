@@ -43,6 +43,7 @@ export default function Messenger({ live }) {
   function loadBook() {
     return fetchChats().then((next) => {
       setBook(next);
+      setThreads(next.threads || {});
       if (next.nick) {
         setNick(next.nick);
       }
@@ -70,8 +71,9 @@ export default function Messenger({ live }) {
       talkInbox()
         .then((items) => {
           if (items.length) {
-            setThreads((prev) => mergeInbox(prev, items));
+            return loadBook();
           }
+          return null;
         })
         .catch(() => {});
     }, 2500);
@@ -182,25 +184,14 @@ export default function Messenger({ live }) {
       current.kind === "dm"
         ? talkDm(current.identity, current.messaging_public, text)
         : current.kind === "group"
-          ? talkSend(current.id, text).then(() => ({ conversation: current.id, from: me, text }))
-          : postRoom(current.topic, text).then((post) => ({
-              conversation: current.id,
-              from: post.from,
-              text: post.text,
-            }));
+          ? talkSend(current.id, text)
+          : postRoom(current.topic, text);
+    // The host keeps the author's copy, so the reload is the source of truth
+    // and a refresh no longer loses what you just wrote.
     send
-      .then((sent) => {
+      .then(() => {
         setDraft("");
-        setThreads((prev) =>
-          pushMsg(prev, sent.conversation || current.id, {
-            from: sent.from || me,
-            text: sent.text || text,
-          })
-        );
-        if (current.kind === "room") {
-          return loadBook();
-        }
-        return null;
+        return loadBook();
       })
       .catch((error) => setStatus(error.message));
   }
@@ -420,7 +411,8 @@ function chatItems(book) {
   return [
     ...(book.contacts || []).map((contact) => ({
       key: `dm:${contact.identity}`,
-      id: contact.identity,
+      // The transcript is keyed by conversation, never by identity.
+      id: contact.conversation,
       kind: "dm",
       title: contact.petname ? `@${contact.petname}` : "Contact",
       identity: contact.identity,
@@ -453,16 +445,4 @@ function label(book, from, me) {
   }
   const contact = (book?.contacts || []).find((item) => item.identity === from);
   return contact?.petname ? `@${contact.petname}` : "Peer";
-}
-
-function pushMsg(prev, conversation, msg) {
-  const list = prev[conversation] ? [...prev[conversation], msg] : [msg];
-  return { ...prev, [conversation]: list };
-}
-
-function mergeInbox(prev, items) {
-  return items.reduce(
-    (next, item) => pushMsg(next, item.conversation, { from: item.from, text: item.text }),
-    prev
-  );
 }
