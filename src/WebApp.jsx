@@ -25,6 +25,7 @@ import {
   saveManifest,
   savedManifest,
 } from "./vault.js";
+import Nav from "./Nav.jsx";
 
 const tabs = ["feed", "recover", "hold", "circle"];
 
@@ -172,23 +173,16 @@ export default function WebApp({ live }) {
   }
 
   return (
-    <div className="page app">
-      <header className="nav">
-        <a className="brand" href="#/">
-          reedhold.com
-        </a>
-        <nav>
-          <a href="#/">Landing</a>
-          <span className={live ? "pill on" : "pill"}>{live ? "host live" : "offline"}</span>
-        </nav>
-      </header>
+    <div className="shell">
+      <Nav live={live} />
 
-      <section className="gate">
-        <h1>Web</h1>
+      <section className="card gate">
+        <p className="kicker">Protocol lab</p>
+        <h1>Hold, recover, sign</h1>
         <p className="note">{status}</p>
         {session ? <p className="identity">{session.identity}</p> : null}
         <label>
-          password — unlocks the vault, is not the identity
+          Password — unlocks the vault, is not the identity
           <input
             type="password"
             value={password}
@@ -196,10 +190,10 @@ export default function WebApp({ live }) {
           />
         </label>
         <div className="actions">
-          <button type="button" onClick={onCreate}>
+          <button className="btn" type="button" onClick={onCreate}>
             Create
           </button>
-          <button type="button" onClick={onRestore}>
+          <button className="btn ghost" type="button" onClick={onRestore}>
             Restore
           </button>
         </div>
@@ -229,10 +223,10 @@ export default function WebApp({ live }) {
                 onChange={(event) => setDraft(event.target.value)}
               />
               <div className="actions">
-                <button type="button" onClick={onPost}>
+                <button className="btn" type="button" onClick={onPost}>
                   Sign post
                 </button>
-                <button type="button" onClick={onCheckpoint}>
+                <button className="btn ghost" type="button" onClick={onCheckpoint}>
                   Compact checkpoint
                 </button>
               </div>
@@ -255,10 +249,10 @@ export default function WebApp({ live }) {
             <section className="panel">
               <p className="note">Split the unlocked seed. Combine any two shares to restore.</p>
               <div className="actions">
-                <button type="button" onClick={onSplit}>
+                <button className="btn" type="button" onClick={onSplit}>
                   Split 2-of-3
                 </button>
-                <button type="button" onClick={onCombine} disabled={shares.length < 3}>
+                <button className="btn ghost" type="button" onClick={onCombine} disabled={shares.length < 3}>
                   Combine 1 + 3
                 </button>
               </div>
@@ -280,7 +274,7 @@ export default function WebApp({ live }) {
                 onChange={(event) => setHeld(event.target.value)}
               />
               <div className="actions">
-                <button type="button" onClick={onHold}>
+                <button className="btn" type="button" onClick={onHold}>
                   Put, kill two, read
                 </button>
               </div>
@@ -295,7 +289,7 @@ export default function WebApp({ live }) {
                 identity; other members live on other hosts.
               </p>
               <div className="actions">
-                <button type="button" onClick={onCircle}>
+                <button className="btn" type="button" onClick={onCircle}>
                   Create circle
                 </button>
               </div>

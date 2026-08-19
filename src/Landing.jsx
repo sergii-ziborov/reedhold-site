@@ -1,25 +1,22 @@
 import { useEffect, useState } from "react";
 import { advertisingLimits, health } from "./api.js";
-
-const repos = [
-  ["Protocol", "https://github.com/sergii-ziborov/reedhold"],
-  ["Host", "https://github.com/sergii-ziborov/reedhold-host"],
-  ["Swift", "https://github.com/sergii-ziborov/reedhold-swift"],
-  ["Site", "https://github.com/sergii-ziborov/reedhold-site"],
-];
+import Nav from "./Nav.jsx";
 
 const claims = [
   {
+    n: "01",
     title: "Identity you can recover",
-    body: "A password unlocks a vault. It is never the identity. Split the seed into k-of-n shares; one share is useless.",
+    body: "A password unlocks a vault. It is never the identity. Split the seed; one share is useless.",
   },
   {
-    title: "State that keeps holding",
-    body: "Signed events, a 4-of-6 erasure grid, and compact chain headers. Kill two holders. The object is still there.",
+    n: "02",
+    title: "Chats that keep holding",
+    body: "Direct messages, admin groups, public rooms. Nicks are aliases. Crypto never sees them.",
   },
   {
+    n: "03",
     title: "A market that cannot rule",
-    body: "The genesis advertising token may sell attention. It cannot decrypt, halt the network, or seize an account.",
+    body: "Ads may sell attention. They cannot decrypt, halt the network, or seize an account.",
   },
 ];
 
@@ -34,73 +31,58 @@ export default function Landing({ live }) {
   }, [live]);
 
   return (
-    <div className="page landing">
-      <header className="nav">
-        <a className="brand" href="#/">
-          reedhold.com
-        </a>
-        <nav>
-          <a href="#/app">App</a>
-          <a href="https://github.com/sergii-ziborov/reedhold">GitHub</a>
-        </nav>
-      </header>
-
+    <div className="shell">
+      <Nav live={live} />
       <section className="hero">
-        <p className="kicker">Reedhold</p>
-        <h1>A social mesh that keeps holding.</h1>
-        <p className="lead">
-          Recoverable cryptographic identity, signed social events, and
-          storage that survives its creator. Chats look like Telegram;
-          nicks are public aliases and never enter the crypto. The protocol
-          is Rust. The phone client is Swift. This is the public web.
-        </p>
-        <div className="actions">
-          <a className="btn" href="#/app">
-            Open the web app
-          </a>
-          <span className={live ? "pill on" : "pill"}>{live ? "host live" : "host offline"}</span>
+        <div className="hero-copy">
+          <p className="kicker">reedhold.com</p>
+          <h1>A social mesh that keeps holding.</h1>
+          <p className="lead">
+            Recoverable identity, signed chats, and storage that survives its
+            creator. The protocol is Rust. The phone app is Swift. This is the
+            web.
+          </p>
+          <div className="actions">
+            <a className="btn" href="#/app">
+              Open chats
+            </a>
+            <a className="btn ghost" href="#/lab">
+              Protocol lab
+            </a>
+          </div>
         </div>
+        <img className="hero-art" src="/hero.jpg" alt="" />
       </section>
 
       <section className="claims">
         {claims.map((claim) => (
-          <article key={claim.title}>
+          <article className="card" key={claim.title}>
+            <span className="num">{claim.n}</span>
             <h2>{claim.title}</h2>
             <p>{claim.body}</p>
           </article>
         ))}
       </section>
 
-      <section className="rules">
+      <section className="rules card">
         <h2>What the protocol already refuses</h2>
         <ul>
-          <li>A company host is never required, and blocking it is not fatal.</li>
-          <li>Human handles are aliases. Identity is <code>reedhold:identity:&lt;hex&gt;</code>.</li>
-          <li>Reputation is not a token. It cannot be sent or sold.</li>
-          <li>Ads select on topic and bucket only. There is no user-id targeting API.</li>
-          <li>Work credits move. Contribution history stays with the node that earned it.</li>
+          <li>A company host is never required.</li>
+          <li>Handles are aliases. Identity is cryptographic.</li>
+          <li>Reputation cannot be sent or sold.</li>
+          <li>Ads cannot target a user id.</li>
+          <li>Popularity is not consensus.</li>
         </ul>
         {ads ? (
           <p className="note">
-            Genesis token: decrypt={String(ads.decrypt)}, halt={String(ads.halt_network)},
-            seize={String(ads.seize_account)}, market_only={String(ads.market_only)}.
+            Genesis token stays market-only — decrypt {String(ads.decrypt)}, halt{" "}
+            {String(ads.halt_network)}.
           </p>
         ) : null}
       </section>
 
-      <section className="repos">
-        <h2>Source</h2>
-        <ul>
-          {repos.map(([name, href]) => (
-            <li key={name}>
-              <a href={href}>{name}</a>
-            </li>
-          ))}
-        </ul>
-      </section>
-
       <footer>
-        <p>Prototype. Not independently audited. Do not use for real secrets yet.</p>
+        <p>Prototype. Not independently audited.</p>
         <p>reedhold.com · MIT</p>
       </footer>
     </div>

@@ -18,13 +18,14 @@ import {
   talkSend,
 } from "./api.js";
 import { deviceSecret, identityHex, saveManifest, savedManifest } from "./vault.js";
+import Nav from "./Nav.jsx";
 
 export default function Messenger({ live }) {
   const secret = deviceSecret();
   const [password, setPassword] = useState("pw");
   const [session, setSession] = useState(null);
   const [status, setStatus] = useState(
-    live ? "create or restore. your nick is not your identity." : "start reedhold-host"
+    live ? "Create an identity, or restore the one on this device." : "Start reedhold-host to chat."
   );
   const [book, setBook] = useState(null);
   const [nick, setNick] = useState("");
@@ -35,6 +36,7 @@ export default function Messenger({ live }) {
   const [active, setActive] = useState(null);
   const [draft, setDraft] = useState("");
   const [threads, setThreads] = useState({});
+  const [sheet, setSheet] = useState(null);
 
   const me = session ? identityHex(session.identity) : "";
 
@@ -67,10 +69,9 @@ export default function Messenger({ live }) {
     const timer = setInterval(() => {
       talkInbox()
         .then((items) => {
-          if (!items.length) {
-            return;
+          if (items.length) {
+            setThreads((prev) => mergeInbox(prev, items));
           }
-          setThreads((prev) => mergeInbox(prev, items));
         })
         .catch(() => {});
     }, 2500);
@@ -79,13 +80,14 @@ export default function Messenger({ live }) {
 
   const list = useMemo(() => chatItems(book), [book]);
   const current = list.find((item) => item.key === active);
+  const messages = current ? threads[current.id] || current.posts || [] : [];
 
   function onCreate() {
     createAccount(password, secret)
       .then((created) => {
         setSession(created.account);
         saveManifest(created.manifest.manifest_hex);
-        setStatus("identity created. claim a public nick — it never enters crypto.");
+        setStatus("Identity created. Claim a nick — it never enters crypto.");
         return loadBook();
       })
       .catch((error) => setStatus(error.message));
@@ -94,13 +96,13 @@ export default function Messenger({ live }) {
   function onRestore() {
     const manifest = savedManifest();
     if (!manifest) {
-      setStatus("no stored manifest");
+      setStatus("No stored manifest on this browser.");
       return;
     }
     restoreAccount(manifest, password, secret)
       .then((view) => {
         setSession(view);
-        setStatus("restored");
+        setStatus("Restored.");
         return loadBook();
       })
       .catch((error) => setStatus(error.message));
@@ -110,7 +112,7 @@ export default function Messenger({ live }) {
     claimAlias(nick)
       .then((alias) => {
         setNick(alias.nick);
-        setStatus(`public @${alias.nick}. packets still carry only identity hex.`);
+        setStatus(`You're @${alias.nick} in public. Packets still carry only keys.`);
         return loadBook();
       })
       .catch((error) => setStatus(error.message));
@@ -118,10 +120,7 @@ export default function Messenger({ live }) {
 
   function onSearch() {
     lookupAlias(query)
-      .then((alias) => {
-        setFound(alias);
-        setStatus(`found @${alias.nick}`);
-      })
+      .then((alias) => setFound(alias))
       .catch((error) => {
         setFound(null);
         setStatus(error.message);
@@ -134,9 +133,10 @@ export default function Messenger({ live }) {
     }
     addContact(found.identity, found.messaging_public, found.nick)
       .then(() => {
+        setActive(`dm:${found.identity}`);
         setFound(null);
         setQuery("");
-        setStatus(`added @${found.nick} as a local contact`);
+        setSheet(null);
         return loadBook();
       })
       .catch((error) => setStatus(error.message));
@@ -146,8 +146,8 @@ export default function Messenger({ live }) {
     talkCreateGroup(groupName || "group")
       .then((group) => {
         setGroupName("");
+        setSheet(null);
         setActive(`group:${group.id}`);
-        setStatus(`you admin “${group.name}”`);
         return loadBook();
       })
       .catch((error) => setStatus(error.message));
@@ -156,8 +156,8 @@ export default function Messenger({ live }) {
   function onJoin() {
     joinRoom(topic)
       .then((room) => {
+        setSheet(null);
         setActive(`room:${room.id}`);
-        setStatus(`joined #${room.topic}`);
         return loadBook();
       })
       .catch((error) => setStatus(error.message));
@@ -170,9 +170,7 @@ export default function Messenger({ live }) {
     } else {
       selected.add(name);
     }
-    setInterests([...selected])
-      .then(() => loadBook())
-      .catch((error) => setStatus(error.message));
+    setInterests([...selected]).then(loadBook).catch((error) => setStatus(error.message));
   }
 
   function onSend() {
@@ -184,11 +182,7 @@ export default function Messenger({ live }) {
       current.kind === "dm"
         ? talkDm(current.identity, current.messaging_public, text)
         : current.kind === "group"
-          ? talkSend(current.id, text).then(() => ({
-              conversation: current.id,
-              from: me,
-              text,
-            }))
+          ? talkSend(current.id, text).then(() => ({ conversation: current.id, from: me, text }))
           : postRoom(current.topic, text).then((post) => ({
               conversation: current.id,
               from: post.from,
@@ -197,10 +191,12 @@ export default function Messenger({ live }) {
     send
       .then((sent) => {
         setDraft("");
-        setThreads((prev) => pushMsg(prev, sent.conversation || current.id, {
-          from: sent.from || me,
-          text: sent.text || text,
-        }));
+        setThreads((prev) =>
+          pushMsg(prev, sent.conversation || current.id, {
+            from: sent.from || me,
+            text: sent.text || text,
+          })
+        );
         if (current.kind === "room") {
           return loadBook();
         }
@@ -209,104 +205,119 @@ export default function Messenger({ live }) {
       .catch((error) => setStatus(error.message));
   }
 
-  function onInvite(contact) {
-    if (!current || current.kind !== "group") {
-      return;
-    }
-    talkInvite(current.id, contact.identity, contact.messaging_public)
-      .then(() => {
-        setStatus("invite sent");
-        return loadBook();
-      })
-      .catch((error) => setStatus(error.message));
-  }
-
-  function onKick(member) {
-    if (!current || current.kind !== "group") {
-      return;
-    }
-    talkRemove(current.id, member)
-      .then(() => {
-        setStatus("removed; epoch rotated");
-        return loadBook();
-      })
-      .catch((error) => setStatus(error.message));
-  }
-
-  const messages = current ? threads[current.id] || current.posts || [] : [];
-
   return (
-    <div className="page messenger">
-      <header className="nav">
-        <a className="brand" href="#/">
-          reedhold.com
-        </a>
-        <nav>
-          <a href="#/lab">Lab</a>
-          <span className={live ? "pill on" : "pill"}>{live ? "host live" : "offline"}</span>
-        </nav>
-      </header>
-
+    <div className="shell">
+      <Nav live={live} />
       {!session ? (
-        <section className="gate">
-          <h1>Chats</h1>
+        <section className="card gate">
+          <p className="kicker">Welcome</p>
+          <h1>Step into Reedhold</h1>
           <p className="note">{status}</p>
           <label>
-            password — unlocks the vault, is not the identity
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+            Password — unlocks the vault, is not the identity
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
           </label>
           <div className="actions">
-            <button type="button" onClick={onCreate}>Create</button>
-            <button type="button" onClick={onRestore}>Restore</button>
+            <button className="btn" type="button" onClick={onCreate}>
+              Create identity
+            </button>
+            <button className="btn ghost" type="button" onClick={onRestore}>
+              Restore
+            </button>
           </div>
         </section>
       ) : (
-        <div className="tg">
+        <div className="app-frame">
           <aside className="tg-side">
-            <p className="note">{status}</p>
-            <label>
-              public nick
-              <input value={nick} placeholder="alice" onChange={(event) => setNick(event.target.value)} />
-            </label>
-            <button type="button" onClick={onClaim}>Claim</button>
-            <label>
-              find people
-              <input value={query} placeholder="@bob" onChange={(event) => setQuery(event.target.value)} />
-            </label>
-            <div className="actions">
-              <button type="button" onClick={onSearch}>Search</button>
-              <button type="button" onClick={onAddFound} disabled={!found}>Add</button>
+            <div className="side-head">
+              <h2>Chats</h2>
+              <p className="note">{book?.nick ? `@${book.nick}` : "Claim a public nick"}</p>
             </div>
-            {found ? <p className="note">@{found.nick}</p> : null}
-            <label>
-              new group
-              <input value={groupName} placeholder="ops" onChange={(event) => setGroupName(event.target.value)} />
-            </label>
-            <button type="button" onClick={onGroup}>Create group</button>
-            <div className="chips">
-              {(book?.catalog || []).map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={book?.interests?.includes(name) ? "chip on" : "chip"}
-                  onClick={() => onInterest(name)}
-                >
-                  #{name}
+            <div className="side-tools">
+              <button className="btn ghost" type="button" onClick={() => setSheet("people")}>
+                People
+              </button>
+              <button className="btn ghost" type="button" onClick={() => setSheet("group")}>
+                Group
+              </button>
+              <button className="btn ghost" type="button" onClick={() => setSheet("room")}>
+                Public
+              </button>
+            </div>
+            {sheet === "people" ? (
+              <div className="sheet">
+                <label>
+                  Your public nick
+                  <input value={nick} placeholder="alice" onChange={(event) => setNick(event.target.value)} />
+                </label>
+                <button className="btn" type="button" onClick={onClaim}>
+                  Claim nick
                 </button>
-              ))}
-            </div>
-            <label>
-              public topic
-              <input value={topic} onChange={(event) => setTopic(event.target.value)} />
-            </label>
-            <button type="button" onClick={onJoin}>Join public chat</button>
+                <label>
+                  Find someone
+                  <input value={query} placeholder="@bob" onChange={(event) => setQuery(event.target.value)} />
+                </label>
+                <button className="btn ghost" type="button" onClick={onSearch}>
+                  Search
+                </button>
+                {found ? (
+                  <div className="found">
+                    <strong>@{found.nick}</strong>
+                    <button className="btn" type="button" onClick={onAddFound}>
+                      Add
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+            {sheet === "group" ? (
+              <div className="sheet">
+                <label>
+                  Group name
+                  <input value={groupName} placeholder="ops" onChange={(event) => setGroupName(event.target.value)} />
+                </label>
+                <button className="btn" type="button" onClick={onGroup}>
+                  Create group
+                </button>
+              </div>
+            ) : null}
+            {sheet === "room" ? (
+              <div className="sheet">
+                <div className="chips">
+                  {(book?.catalog || []).map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      className={book?.interests?.includes(name) ? "chip on" : "chip"}
+                      onClick={() => onInterest(name)}
+                    >
+                      #{name}
+                    </button>
+                  ))}
+                </div>
+                <label>
+                  Topic
+                  <input value={topic} onChange={(event) => setTopic(event.target.value)} />
+                </label>
+                <button className="btn" type="button" onClick={onJoin}>
+                  Join public chat
+                </button>
+              </div>
+            ) : null}
             <ul className="tg-list">
               {list.map((item) => (
                 <li key={item.key}>
                   <button
                     type="button"
                     className={item.key === active ? "row on" : "row"}
-                    onClick={() => setActive(item.key)}
+                    onClick={() => {
+                      setActive(item.key);
+                      setSheet(null);
+                    }}
                   >
                     <strong>{item.title}</strong>
                     <span>{item.kind}</span>
@@ -321,12 +332,19 @@ export default function Messenger({ live }) {
                 <header className="tg-head">
                   <h2>{current.title}</h2>
                   <p className="note">
-                    {current.kind === "group" && current.you_admin ? "you admin this group" : current.kind}
+                    {current.kind === "group" && current.you_admin
+                      ? "You admin this group"
+                      : current.kind === "room"
+                        ? "Public room · aliases stay off the wire"
+                        : "Direct message · keys only"}
                   </p>
                 </header>
                 <ol className="tg-feed">
                   {messages.map((msg, index) => (
-                    <li key={`${msg.from}-${index}`} className={msg.from === me ? "mine" : ""}>
+                    <li
+                      key={`${msg.from}-${index}`}
+                      className={msg.from === me ? "bubble mine" : "bubble"}
+                    >
                       <span>{label(book, msg.from, me)}</span>
                       {msg.text}
                     </li>
@@ -334,17 +352,34 @@ export default function Messenger({ live }) {
                 </ol>
                 {current.kind === "group" && current.you_admin ? (
                   <div className="admin">
-                    <p className="note">admin</p>
                     {(book?.contacts || []).map((contact) => (
-                      <button key={contact.identity} type="button" onClick={() => onInvite(contact)}>
-                        invite {contact.petname || "contact"}
+                      <button
+                        key={contact.identity}
+                        type="button"
+                        onClick={() =>
+                          talkInvite(current.id, contact.identity, contact.messaging_public)
+                            .then(loadBook)
+                            .catch((error) => setStatus(error.message))
+                        }
+                      >
+                        Invite {contact.petname || "contact"}
                       </button>
                     ))}
-                    {(current.members || []).filter((id) => id !== me).map((member) => (
-                      <button key={member} type="button" onClick={() => onKick(member)}>
-                        remove member
-                      </button>
-                    ))}
+                    {(current.members || [])
+                      .filter((id) => id !== me)
+                      .map((member) => (
+                        <button
+                          key={member}
+                          type="button"
+                          onClick={() =>
+                            talkRemove(current.id, member)
+                              .then(loadBook)
+                              .catch((error) => setStatus(error.message))
+                          }
+                        >
+                          Remove member
+                        </button>
+                      ))}
                   </div>
                 ) : null}
                 <form
@@ -354,12 +389,22 @@ export default function Messenger({ live }) {
                     onSend();
                   }}
                 >
-                  <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="message" />
-                  <button type="submit">Send</button>
+                  <input
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    placeholder="Write a message"
+                  />
+                  <button className="btn" type="submit">
+                    Send
+                  </button>
                 </form>
               </>
             ) : (
-              <p className="note">pick a chat. nicks are public aliases; crypto never sees them.</p>
+              <div className="empty">
+                <img src="/empty.jpg" alt="" />
+                <h2>Pick a chat</h2>
+                <p className="note">{status}</p>
+              </div>
             )}
           </section>
         </div>
@@ -372,44 +417,42 @@ function chatItems(book) {
   if (!book) {
     return [];
   }
-  const contacts = (book.contacts || []).map((contact) => ({
-    key: `dm:${contact.identity}`,
-    id: contact.identity,
-    kind: "dm",
-    title: contact.petname ? `@${contact.petname}` : "contact",
-    identity: contact.identity,
-    messaging_public: contact.messaging_public,
-    posts: [],
-  }));
-  const groups = (book.groups || []).map((group) => ({
-    key: `group:${group.id}`,
-    id: group.id,
-    kind: "group",
-    title: group.name,
-    you_admin: group.you_admin,
-    members: group.members,
-    posts: [],
-  }));
-  const rooms = (book.rooms || []).map((room) => ({
-    key: `room:${room.id}`,
-    id: room.id,
-    kind: "room",
-    title: `#${room.topic}`,
-    topic: room.topic,
-    posts: room.posts || [],
-  }));
-  return [...contacts, ...groups, ...rooms];
+  return [
+    ...(book.contacts || []).map((contact) => ({
+      key: `dm:${contact.identity}`,
+      id: contact.identity,
+      kind: "dm",
+      title: contact.petname ? `@${contact.petname}` : "Contact",
+      identity: contact.identity,
+      messaging_public: contact.messaging_public,
+      posts: [],
+    })),
+    ...(book.groups || []).map((group) => ({
+      key: `group:${group.id}`,
+      id: group.id,
+      kind: "group",
+      title: group.name,
+      you_admin: group.you_admin,
+      members: group.members,
+      posts: [],
+    })),
+    ...(book.rooms || []).map((room) => ({
+      key: `room:${room.id}`,
+      id: room.id,
+      kind: "room",
+      title: `#${room.topic}`,
+      topic: room.topic,
+      posts: room.posts || [],
+    })),
+  ];
 }
 
 function label(book, from, me) {
   if (from === me) {
-    return book?.nick ? `@${book.nick}` : "you";
+    return book?.nick ? `@${book.nick}` : "You";
   }
   const contact = (book?.contacts || []).find((item) => item.identity === from);
-  if (contact?.petname) {
-    return `@${contact.petname}`;
-  }
-  return "peer";
+  return contact?.petname ? `@${contact.petname}` : "Peer";
 }
 
 function pushMsg(prev, conversation, msg) {
@@ -418,9 +461,8 @@ function pushMsg(prev, conversation, msg) {
 }
 
 function mergeInbox(prev, items) {
-  let next = prev;
-  items.forEach((item) => {
-    next = pushMsg(next, item.conversation, { from: item.from, text: item.text });
-  });
-  return next;
+  return items.reduce(
+    (next, item) => pushMsg(next, item.conversation, { from: item.from, text: item.text }),
+    prev
+  );
 }
