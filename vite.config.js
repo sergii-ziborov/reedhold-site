@@ -10,4 +10,10 @@ export default defineConfig({
       "/health": "http://127.0.0.1:4783",
     },
   },
+  preview: {
+    proxy: {
+      "/v1": "http://127.0.0.1:4783",
+      "/health": "http://127.0.0.1:4783",
+    },
+  },
 });

@@ -2,104 +2,231 @@
   color: #e8efe6;
   background: #12150f;
   font-family: Georgia, "Times New Roman", serif;
+  --line: #2a3326;
+  --mute: #8a9a80;
+  --soft: #c5d0bf;
+  --leaf: #d7f0c8;
+  --moss: #9bb38a;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
 }
 
-main {
-  max-width: 40rem;
+a {
+  color: var(--leaf);
+}
+
+code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.85em;
+}
+
+.page {
+  max-width: 52rem;
   margin: 0 auto;
-  padding: 4rem 1.5rem 6rem;
+  padding: 1.5rem 1.4rem 5rem;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  text-decoration: none;
+  color: var(--moss);
+}
+
+.nav nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.nav nav a {
+  text-decoration: none;
+  color: var(--soft);
 }
 
 .kicker {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   font-size: 0.75rem;
-  color: #9bb38a;
+  color: var(--moss);
+}
+
+.hero {
+  padding: 3.2rem 0 2rem;
 }
 
 h1 {
   font-weight: 500;
-  font-size: 2.4rem;
-  line-height: 1.15;
+  font-size: clamp(2rem, 5vw, 3.1rem);
+  line-height: 1.12;
+  margin: 0.3rem 0 1rem;
 }
 
 .lead,
 .status,
 .note {
-  line-height: 1.5;
-  color: #c5d0bf;
+  line-height: 1.55;
+  color: var(--soft);
 }
 
-.repos {
+.claims {
+  display: grid;
+  gap: 1.2rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  border-top: 1px solid var(--line);
+  padding: 2rem 0;
+}
+
+.claims h2,
+.rules h2,
+.repos h2 {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--leaf);
+}
+
+.claims p,
+.rules li {
+  color: var(--soft);
+  line-height: 1.5;
+}
+
+.rules ul,
+.repos ul {
+  padding-left: 1.1rem;
+}
+
+.repos ul {
   list-style: none;
   padding: 0;
-}
-
-.repos li {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1rem;
-  border-top: 1px solid #2a3326;
-  padding: 0.7rem 0;
 }
 
-.repos a {
-  color: #d7f0c8;
+.pill {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--mute);
+  border: 1px solid var(--line);
+  padding: 0.2rem 0.55rem;
 }
 
-.repos span {
-  color: #8a9a80;
+.pill.on {
+  color: var(--leaf);
+  border-color: var(--moss);
 }
 
-ol {
-  padding-left: 1.2rem;
-  color: #c5d0bf;
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin: 0.9rem 0;
 }
 
-.try {
-  margin: 2rem 0;
-  padding: 1rem 0;
-  border-top: 1px solid #2a3326;
+.btn,
+button {
+  background: #2a3326;
+  color: var(--leaf);
+  border: 0;
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
 }
 
-.identity {
-  font-family: ui-monospace, Consolas, monospace;
-  font-size: 0.85rem;
-  word-break: break-all;
-  color: #d7f0c8;
+.btn {
+  display: inline-block;
 }
 
 label {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  color: #8a9a80;
-  font-size: 0.85rem;
+  color: var(--mute);
+  font-size: 0.9rem;
 }
 
-input {
+input,
+textarea {
   background: #1a1f16;
-  border: 1px solid #2a3326;
+  border: 1px solid var(--line);
   color: #e8efe6;
-  padding: 0.45rem 0.6rem;
+  padding: 0.5rem 0.65rem;
   font: inherit;
+  width: 100%;
 }
 
-.actions {
+.identity {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.82rem;
+  word-break: break-all;
+  color: var(--leaf);
+}
+
+.gate {
+  padding: 1.6rem 0;
+}
+
+.tabs {
   display: flex;
-  gap: 0.6rem;
-  margin: 0.8rem 0;
+  gap: 0.4rem;
+  border-bottom: 1px solid var(--line);
 }
 
-button {
-  background: #2a3326;
-  color: #d7f0c8;
-  border: 0;
-  padding: 0.45rem 0.8rem;
-  font: inherit;
-  cursor: pointer;
+.tab {
+  background: transparent;
+  color: var(--mute);
+  padding: 0.45rem 0.7rem;
+}
+
+.tab.on {
+  color: var(--leaf);
+  box-shadow: inset 0 -2px 0 var(--moss);
+}
+
+.panel {
+  padding: 1.2rem 0;
+}
+
+.feed {
+  padding-left: 0;
+  list-style: none;
+}
+
+.feed li {
+  border-top: 1px solid var(--line);
+  padding: 0.55rem 0;
+  color: var(--soft);
+}
+
+.feed span {
+  color: var(--mute);
+  margin-right: 0.6rem;
+  font-family: ui-monospace, Consolas, monospace;
+}
+
+footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  color: var(--mute);
+  font-size: 0.9rem;
 }

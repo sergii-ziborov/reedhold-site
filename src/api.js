@@ -1,4 +1,4 @@
-const base = "";
+const base = import.meta.env.VITE_API || "";
 
 async function json(path, options) {
   const response = await fetch(`${base}${path}`, options);
@@ -7,6 +7,14 @@ async function json(path, options) {
     throw new Error(data.error || "request failed");
   }
   return data;
+}
+
+function post(path, body) {
+  return json(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 export function health() {
@@ -22,81 +30,82 @@ export function advertisingLimits() {
 }
 
 export function createAccount(password, deviceSecret) {
-  return json("/v1/account", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password, device_secret: deviceSecret }),
-  });
+  return post("/v1/account", { password, device_secret: deviceSecret });
 }
 
 export function restoreAccount(manifestHex, password, deviceSecret) {
-  return json("/v1/account/restore", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      manifest_hex: manifestHex,
-      password,
-      device_secret: deviceSecret,
-    }),
+  return post("/v1/account/restore", {
+    manifest_hex: manifestHex,
+    password,
+    device_secret: deviceSecret,
   });
 }
 
+export function account() {
+  return json("/v1/account");
+}
+
 export function emit(kind, payload) {
-  return json("/v1/account/emit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kind, payload }),
-  });
+  return post("/v1/account/emit", { kind, payload });
 }
 
 export function history() {
   return json("/v1/account/history");
 }
 
-function holder(byte) {
-  return byte.toString(16).padStart(2, "0").repeat(32);
+export function splitRecovery(threshold, total) {
+  return post("/v1/account/split", { threshold, total });
 }
 
-export function durableDemo() {
-  const holders = [1, 2, 3, 4, 5, 6, 7, 8].map(holder);
-  const headers = { "Content-Type": "application/json" };
-  return json("/v1/durable/open", {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ holders, company: holder(99) }),
-  })
-    .then(() =>
-      json("/v1/durable/put", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ payload: "still here" }),
-      })
-    )
-    .then((stored) => {
-      const live = stored.holders.filter((id) => id);
-      return json("/v1/durable/kill", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ holder: live[0] }),
-      })
-        .then(() =>
-          json("/v1/durable/kill", {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ holder: live[1] }),
-          })
-        )
-        .then(() =>
-          json("/v1/durable/get", {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ id: stored.id }),
-          })
-        )
-        .then((got) => ({
-          id: stored.id,
-          coding: `${stored.k}-of-${stored.n}`,
-          payload: got.payload,
-        }));
-    });
+export function combineShares(shares, threshold, password, deviceSecret) {
+  return post("/v1/account/combine", {
+    shares,
+    threshold,
+    password,
+    device_secret: deviceSecret,
+  });
+}
+
+export function talkOpen(epoch, candidates, relayCount) {
+  return post("/v1/talk/open", {
+    epoch,
+    candidates,
+    relay_count: relayCount,
+  });
+}
+
+export function talkCreateGroup(name) {
+  return post("/v1/talk/group", { name });
+}
+
+export function talkInbox() {
+  return json("/v1/talk/inbox");
+}
+
+export function durableOpen(holders, company) {
+  return post("/v1/durable/open", { holders, company });
+}
+
+export function durablePut(payload, tier) {
+  return post("/v1/durable/put", { payload, tier });
+}
+
+export function durableKill(holder) {
+  return post("/v1/durable/kill", { holder });
+}
+
+export function durableGet(id) {
+  return post("/v1/durable/get", { id });
+}
+
+export function chainOpen() {
+  return post("/v1/chain/open", {});
+}
+
+export function chainCommit(epoch, identity, groups, storage) {
+  return post("/v1/chain/commit", { epoch, identity, groups, storage });
+}
+
+export function chainHead() {
+  return json("/v1/chain/head");
 }
