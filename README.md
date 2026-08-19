@@ -35,6 +35,7 @@ The recovery manifest stays in `localStorage`. The password is never stored.
 reedhold            protocol
 reedhold-host       JSON HTTP
 reedhold-swift      iOS / macOS
+reedhold-app        native desktop
 reedhold-site       this site
 ```
 
