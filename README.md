@@ -15,7 +15,8 @@ npm run dev
 ```
 
 Needs `reedhold-host` on `127.0.0.1:4783` for live invariants, create,
-restore, and signed posts. The recovery manifest stays in `localStorage`.
+restore, signed posts, and the durable-grid demo (put, kill two holders,
+still read). The recovery manifest stays in `localStorage`.
 
 ```text
 reedhold            protocol

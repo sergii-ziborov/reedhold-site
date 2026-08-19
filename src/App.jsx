@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   advertisingLimits,
   createAccount,
+  durableDemo,
   emit,
   health,
   history,
@@ -36,6 +37,7 @@ export default function App() {
   const [identity, setIdentity] = useState("");
   const [note, setNote] = useState("Create an identity. The password only unlocks the vault.");
   const [log, setLog] = useState([]);
+  const [grid, setGrid] = useState("4-of-6: put a payload, kill two holders, still read it.");
   const secret = deviceSecret();
 
   useEffect(() => {
@@ -125,6 +127,26 @@ export default function App() {
             ))}
           </ol>
         ) : null}
+      </section>
+      <section className="try">
+        <h2>Durable grid</h2>
+        <p className="note">{grid}</p>
+        <div className="actions">
+          <button
+            type="button"
+            onClick={() => {
+              durableDemo()
+                .then((result) => {
+                  setGrid(
+                    `${result.coding} recovered “${result.payload}” after two holders died.`
+                  );
+                })
+                .catch((error) => setGrid(error.message));
+            }}
+          >
+            Kill two holders
+          </button>
+        </div>
       </section>
       {ads ? (
         <p className="note">

@@ -52,3 +52,51 @@ export function emit(kind, payload) {
 export function history() {
   return json("/v1/account/history");
 }
+
+function holder(byte) {
+  return byte.toString(16).padStart(2, "0").repeat(32);
+}
+
+export function durableDemo() {
+  const holders = [1, 2, 3, 4, 5, 6, 7, 8].map(holder);
+  const headers = { "Content-Type": "application/json" };
+  return json("/v1/durable/open", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ holders, company: holder(99) }),
+  })
+    .then(() =>
+      json("/v1/durable/put", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ payload: "still here" }),
+      })
+    )
+    .then((stored) => {
+      const live = stored.holders.filter((id) => id);
+      return json("/v1/durable/kill", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ holder: live[0] }),
+      })
+        .then(() =>
+          json("/v1/durable/kill", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ holder: live[1] }),
+          })
+        )
+        .then(() =>
+          json("/v1/durable/get", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ id: stored.id }),
+          })
+        )
+        .then((got) => ({
+          id: stored.id,
+          coding: `${stored.k}-of-${stored.n}`,
+          payload: got.payload,
+        }));
+    });
+}
